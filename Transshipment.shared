@@ -1,0 +1,16 @@
+[
+    {
+        "original_name": "amountWT",
+        "variables": [
+            "amountWT_FunctionNDPartial_Flags",
+            "amountWT_FunctionNDPartial_Values"
+        ]
+    },
+    {
+        "original_name": "amountTC",
+        "variables": [
+            "amountTC_FunctionNDPartial_Flags",
+            "amountTC_FunctionNDPartial_Values"
+        ]
+    }
+]

@@ -1,0 +1,165 @@
+{
+    "bin_size": 10,
+    "amountWT_FunctionNDPartial_Flags": [
+        {
+            "dimension": 1,
+            "index": 9,
+            "metric_value": 79.14737964996314
+        },
+        {
+            "dimension": 0,
+            "index": 9,
+            "metric_value": 27.790262101320074
+        },
+        {
+            "dimension": 0,
+            "index": 0,
+            "metric_value": 11.047363165603393
+        },
+        {
+            "dimension": 0,
+            "index": 1,
+            "metric_value": 9.421474762824168
+        },
+        {
+            "dimension": 0,
+            "index": 3,
+            "metric_value": 8.771289929571994
+        }
+    ],
+    "amountWT_FunctionNDPartial_Values": [
+        {
+            "dimension": 1,
+            "index": 9,
+            "metric_value": 85.81085087459235
+        },
+        {
+            "dimension": 0,
+            "index": 0,
+            "metric_value": 41.14184066748549
+        },
+        {
+            "dimension": 0,
+            "index": 9,
+            "metric_value": 16.031510736521113
+        },
+        {
+            "dimension": 0,
+            "index": 8,
+            "metric_value": 11.83854982846978
+        },
+        {
+            "dimension": 0,
+            "index": 2,
+            "metric_value": 10.501884714751599
+        }
+    ],
+    "amountTC_FunctionNDPartial_Flags": [
+        {
+            "dimension": 1,
+            "index": 0,
+            "metric_value": 21.64665788862211
+        },
+        {
+            "dimension": 1,
+            "index": 5,
+            "metric_value": 18.488885446518474
+        },
+        {
+            "dimension": 1,
+            "index": 6,
+            "metric_value": 17.73952443652699
+        },
+        {
+            "dimension": 1,
+            "index": 3,
+            "metric_value": 17.540469367206256
+        },
+        {
+            "dimension": 0,
+            "index": 2,
+            "metric_value": 12.406862365424834
+        }
+    ],
+    "amountTC_FunctionNDPartial_Values": [
+        {
+            "dimension": 1,
+            "index": 0,
+            "metric_value": 27.96804260985353
+        },
+        {
+            "dimension": 1,
+            "index": 6,
+            "metric_value": 22.892143808255657
+        },
+        {
+            "dimension": 1,
+            "index": 5,
+            "metric_value": 22.48468708388815
+        },
+        {
+            "dimension": 1,
+            "index": 3,
+            "metric_value": 21.098535286284957
+        },
+        {
+            "dimension": 0,
+            "index": 5,
+            "metric_value": 12.88282290279627
+        }
+    ],
+    "amountWT": [
+        {
+            "dimension": 1,
+            "index": 9,
+            "metric_value": 79.81767227533037
+        },
+        {
+            "dimension": 0,
+            "index": 9,
+            "metric_value": 26.607424499467875
+        },
+        {
+            "dimension": 0,
+            "index": 0,
+            "metric_value": 14.07463013409157
+        },
+        {
+            "dimension": 0,
+            "index": 1,
+            "metric_value": 8.819862968760251
+        },
+        {
+            "dimension": 0,
+            "index": 8,
+            "metric_value": 8.510047281827468
+        }
+    ],
+    "amountTC": [
+        {
+            "dimension": 1,
+            "index": 0,
+            "metric_value": 23.070922836913475
+        },
+        {
+            "dimension": 1,
+            "index": 5,
+            "metric_value": 19.389175567022683
+        },
+        {
+            "dimension": 1,
+            "index": 6,
+            "metric_value": 18.900456018240728
+        },
+        {
+            "dimension": 1,
+            "index": 3,
+            "metric_value": 18.34213368534741
+        },
+        {
+            "dimension": 0,
+            "index": 2,
+            "metric_value": 12.073982959318371
+        }
+    ]
+}

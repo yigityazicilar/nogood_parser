@@ -1,0 +1,86 @@
+[
+  {
+    "domain": {"varType": "boolean"},
+    "name": "amountWT_FunctionNDPartial_Flags",
+    "varType": "matrix",
+    "dimensions": [
+      {
+        "lower": 1,
+        "upper": 37,
+        "varType": "integer"
+      },
+      {
+        "lower": 1,
+        "upper": 28,
+        "varType": "integer"
+      }
+    ]
+  },
+  {
+    "domain": {
+      "lower": 1,
+      "upper": 37,
+      "varvarType": "integer"
+    },
+    "name": "amountWT_FunctionNDPartial_Values",
+    "varType": "matrix",
+    "dimensions": [
+      {
+        "lower": 1,
+        "upper": 37,
+        "varType": "integer"
+      },
+      {
+        "lower": 1,
+        "upper": 28,
+        "varType": "integer"
+      }
+    ]
+  },
+  {
+    "domain": {"varType": "boolean"},
+    "name": "amountTC_FunctionNDPartial_Flags",
+    "varType": "matrix",
+    "dimensions": [
+      {
+        "lower": 1,
+        "upper": 28,
+        "varType": "integer"
+      },
+      {
+        "lower": 1,
+        "upper": 6,
+        "varType": "integer"
+      }
+    ]
+  },
+  {
+    "domain": {
+      "lower": 1,
+      "upper": 26,
+      "varType": "integer"
+    },
+    "name": "amountTC_FunctionNDPartial_Values",
+    "varType": "matrix",
+    "dimensions": [
+      {
+        "lower": 1,
+        "upper": 28,
+        "varType": "integer"
+      },
+      {
+        "lower": 1,
+        "upper": 6,
+        "varType": "integer"
+      }
+    ]
+  },
+  {
+    "domain": {
+      "lower": 1,
+      "upper": 38,
+      "varType": "integer"
+    },
+    "name": "totalCost"
+  }
+]
