@@ -1,2 +1,7 @@
 .vscode
 .DS_Store
+*.pyz
+__pycache__
+*.pyc
+*.spec
+*.find_bins
