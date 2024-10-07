@@ -2,164 +2,164 @@
     "bin_size": 10,
     "amountWT_FunctionNDPartial_Flags": [
         {
-            "dimension": 1,
-            "index": 9,
-            "metric_value": 167.06206831978233
-        },
-        {
             "dimension": 0,
             "index": 0,
-            "metric_value": 31.494363593817646
+            "metric_value": 0.21032730293854587
         },
         {
             "dimension": 0,
-            "index": 9,
-            "metric_value": 27.790262101320074
+            "index": 8,
+            "metric_value": 0.12176873794135741
         },
         {
             "dimension": 0,
             "index": 1,
-            "metric_value": 26.58457834923366
+            "metric_value": 0.11456826215529875
         },
         {
-            "dimension": 0,
-            "index": 3,
-            "metric_value": 25.428824428446205
+            "dimension": 1,
+            "index": 4,
+            "metric_value": 0.1145256338694065
+        },
+        {
+            "dimension": 1,
+            "index": 6,
+            "metric_value": 0.11410103617435394
         }
     ],
     "amountWT_FunctionNDPartial_Values": [
         {
-            "dimension": 1,
-            "index": 9,
-            "metric_value": 175.90903923028313
-        },
-        {
             "dimension": 0,
             "index": 0,
-            "metric_value": 56.00838747982127
+            "metric_value": 0.7263881157689205
         },
         {
-            "dimension": 0,
+            "dimension": 1,
             "index": 4,
-            "metric_value": 28.6474616836304
+            "metric_value": 0.16651733351085812
         },
         {
-            "dimension": 0,
-            "index": 2,
-            "metric_value": 25.382260872959314
+            "dimension": 1,
+            "index": 8,
+            "metric_value": 0.15709083436121807
         },
         {
-            "dimension": 0,
-            "index": 3,
-            "metric_value": 22.28589616231757
+            "dimension": 1,
+            "index": 7,
+            "metric_value": 0.1355548806188106
+        },
+        {
+            "dimension": 1,
+            "index": 1,
+            "metric_value": 0.1342154754518795
         }
     ],
     "amountTC_FunctionNDPartial_Flags": [
         {
             "dimension": 1,
             "index": 0,
-            "metric_value": 45.07867444580739
-        },
-        {
-            "dimension": 1,
-            "index": 8,
-            "metric_value": 37.67251726605439
+            "metric_value": 0.1384904795571513
         },
         {
             "dimension": 1,
             "index": 6,
-            "metric_value": 35.00758886557406
+            "metric_value": 0.12148806902703567
         },
         {
             "dimension": 0,
-            "index": 9,
-            "metric_value": 24.438138785711672
+            "index": 2,
+            "metric_value": 0.11811750102949256
         },
         {
-            "dimension": 0,
-            "index": 0,
-            "metric_value": 24.4100837494757
+            "dimension": 1,
+            "index": 5,
+            "metric_value": 0.11797994219630761
+        },
+        {
+            "dimension": 1,
+            "index": 7,
+            "metric_value": 0.11393877313995202
         }
     ],
     "amountTC_FunctionNDPartial_Values": [
         {
             "dimension": 1,
             "index": 0,
-            "metric_value": 56.17247743949117
+            "metric_value": 0.17130123494035848
+        },
+        {
+            "dimension": 1,
+            "index": 7,
+            "metric_value": 0.14839470036002617
+        },
+        {
+            "dimension": 1,
+            "index": 4,
+            "metric_value": 0.14583513380022792
+        },
+        {
+            "dimension": 1,
+            "index": 5,
+            "metric_value": 0.1442157227591539
         },
         {
             "dimension": 1,
             "index": 6,
-            "metric_value": 37.873214657363285
-        },
-        {
-            "dimension": 1,
-            "index": 8,
-            "metric_value": 31.539276637819842
-        },
-        {
-            "dimension": 0,
-            "index": 0,
-            "metric_value": 23.21474378132204
-        },
-        {
-            "dimension": 0,
-            "index": 2,
-            "metric_value": 22.962959068816843
+            "metric_value": 0.14399997593967914
         }
     ],
     "amountWT": [
         {
-            "dimension": 1,
-            "index": 9,
-            "metric_value": 167.80271763832343
-        },
-        {
             "dimension": 0,
             "index": 0,
-            "metric_value": 34.341817272034284
+            "metric_value": 0.2927444885841616
         },
         {
-            "dimension": 0,
-            "index": 9,
-            "metric_value": 26.607424499467875
+            "dimension": 1,
+            "index": 4,
+            "metric_value": 0.1228290525291506
         },
         {
-            "dimension": 0,
+            "dimension": 1,
             "index": 1,
-            "metric_value": 25.92901934185973
+            "metric_value": 0.11676388603032707
+        },
+        {
+            "dimension": 1,
+            "index": 8,
+            "metric_value": 0.11247527754708495
         },
         {
             "dimension": 0,
-            "index": 3,
-            "metric_value": 24.957139550543786
+            "index": 2,
+            "metric_value": 0.11208310783498929
         }
     ],
     "amountTC": [
         {
             "dimension": 1,
             "index": 0,
-            "metric_value": 47.694513411486426
-        },
-        {
-            "dimension": 1,
-            "index": 8,
-            "metric_value": 36.36682603216626
+            "metric_value": 0.14580058561070544
         },
         {
             "dimension": 1,
             "index": 6,
-            "metric_value": 35.59750550848447
+            "metric_value": 0.12650356310365835
+        },
+        {
+            "dimension": 1,
+            "index": 5,
+            "metric_value": 0.12382509744582472
+        },
+        {
+            "dimension": 1,
+            "index": 7,
+            "metric_value": 0.12161534782901183
         },
         {
             "dimension": 0,
-            "index": 0,
-            "metric_value": 24.119360662617712
-        },
-        {
-            "dimension": 0,
-            "index": 9,
-            "metric_value": 23.711577205239312
+            "index": 2,
+            "metric_value": 0.11451652004008284
         }
     ]
 }

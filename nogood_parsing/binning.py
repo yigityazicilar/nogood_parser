@@ -1,14 +1,14 @@
 from collections import Counter
+import gzip
 import json
-from math import e
+import pickle
 from typing import Any, Dict, Tuple, List, Union, Callable
 import numpy as np
 from pathlib import Path
-import gzip
 import logging
+from scipy.interpolate import interpn
 
-from nogood_parser import Identifier, NogoodParser, get_identifier_counts
-from constants import NUMBER_OF_BINS
+from nogood_parser import Identifier, parse_representation_objects
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -84,87 +84,48 @@ def increment_find_bins(
         f_find_json.close()
 
     find_bins: Dict[str, np.ndarray] = {}
-    for item in find_json:
-        if item.get("varType") != "matrix":
+    dimension_data: Dict[str, List[Tuple[int, int]]] = {}
+    for find_var in find_json:
+        if find_var.get("varType") != "matrix":
             continue
-        name = item["name"]
-        find_bins[name] = create_numpy_array(item)
+        name = find_var["name"]
+        find_bins[name] = create_numpy_array(find_var)
+        dimension_data[name] = get_dimension_bounds(find_var)
 
     for identifier, increment in increment_map.items():
         if identifier.name in find_bins:
-            find_bins[identifier.name][tuple(identifier.indices)] += increment
+            mapped_indices: Tuple[int, ...] = tuple(
+                [
+                    idx - dimension_data[identifier.name][i][0]
+                    for i, idx in enumerate(identifier.indices)
+                ]
+            )
+            find_bins[identifier.name][mapped_indices] += increment
 
     return find_bins
 
 
-def parse_representation_objects(
-    aux_path: Path, find_json_path: Path
-) -> Tuple[Dict[int, str], Dict[int, Counter[Identifier]]]:
+def resample_nd_matrix(matrix: np.ndarray, new_shape: Tuple[int, ...]) -> np.ndarray:
     """
-    Parse representation objects from aux data and build a converted map.
-
-    Parameters:
-    - aux_path: Path to the auxiliary data file (compressed JSON).
-    - find_json_path: Path to the find_json file containing variable information.
-
-    Returns:
-    - A tuple containing:
-        - string_representation: A dictionary mapping variable IDs to their string representations.
-        - identifier_counts: A dictionary mapping variable IDs to the number of times they are referenced in a single nogood.
+    Resample an n-dimensional matrix to a new shape using multilinear interpolation.
     """
-    logger.info(f"Processing aux data from '{aux_path}' and '{find_json_path}'")
-    with gzip.open(aux_path, "rt") as f_aux, find_json_path.open("r") as f_find_json:
-        aux: Dict[str, Any] = json.load(f_aux)
-        find_json: List[Dict[str, Any]] = json.load(f_find_json)
-        f_aux.close()
-        f_find_json.close()
+    old_dims = matrix.shape
+    dim_ranges = [np.arange(d) for d in old_dims]
+    new_dims = [np.linspace(0, d - 1, num=n) for d, n in zip(old_dims, new_shape)]
+    mesh_new = np.meshgrid(*new_dims, indexing="ij")
 
-    parser = NogoodParser(find_json)
-    identifier_counts: Dict[int, Counter[Identifier]] = {}
-    string_representation: Dict[int, str] = {}
-    for key, obj in aux.items():
-        if isinstance(obj, dict) and "representation" in obj:
-            left_hand_side = obj.get("name", "")
-            representation = obj.get("representation", "")
+    # Flatten the coordinate grids
+    coords_new = np.vstack([m.flatten() for m in mesh_new]).T
 
-            try:
-                parsed_nogood = parser.tokenize(left_hand_side)
-            except Exception as e:
-                logger.error(f"Failed to parse '{left_hand_side}' with error: {e}")
-                raise
-
-            increments = get_identifier_counts(parsed_nogood)
-            print(increments)
-
-            pos_val, neg_val = "", ""
-            pos_op, neg_op = "=", "="
-
-            if representation == "2vals":
-                neg_val = obj.get("val1", "")
-                pos_val = obj.get("val2", "")
-            elif representation == "order":
-                pos_val = neg_val = obj.get("value", "")
-                pos_op, neg_op = "<=", ">"
-            else:
-                pos_val = neg_val = obj.get("value", "")
-                pos_op, neg_op = "=", "!="
-
-            positive = f"{parsed_nogood}{pos_op}{pos_val}"
-            negative = f"{parsed_nogood}{neg_op}{neg_val}"
-
-            try:
-                int_key = int(key)
-                # string_representation[int_key] = positive
-                # string_representation[-int_key] = negative
-                identifier_counts[int_key] = increments
-            except ValueError:
-                logger.warning(f"Invalid key '{key}' in aux data. Skipping.")
-                continue
-
-    logging.info(
-        f"Finished processing aux data from '{aux_path}' and '{find_json_path}'. Should run the binning now."
+    matrix_new = interpn(
+        points=dim_ranges,
+        values=matrix,
+        xi=coords_new,
+        method="cubic",
+        bounds_error=False,
+        fill_value=0,
     )
-    return string_representation, identifier_counts
+    return matrix_new.reshape(new_shape)
 
 
 def create_numpy_array(item: Dict[str, Any]) -> np.ndarray:
@@ -172,8 +133,19 @@ def create_numpy_array(item: Dict[str, Any]) -> np.ndarray:
     Create a numpy array for the given item.
     """
     if "dimensions" in item:
-        shape = [dim["upper"] - dim["lower"] for dim in item["dimensions"]]
+        shape = [dim["upper"] - dim["lower"] + 1 for dim in item["dimensions"]]
         return np.zeros(shape)
+    else:
+        raise ValueError("Scalar values are not supported.")
+
+
+def get_dimension_bounds(item: Dict[str, Any]) -> List[Tuple[int, int]]:
+    """
+    Get the lower and upper bounds of the dimensions for the given item.
+    """
+    if "dimensions" in item:
+        bounds = [(dim["lower"], dim["upper"]) for dim in item["dimensions"]]
+        return bounds
     else:
         raise ValueError("Scalar values are not supported.")
 
@@ -243,3 +215,45 @@ def find_top_indices(
 
     # Return the top n results
     return results_sorted[:n]
+
+
+def parse_and_bin_instance(
+    instance_folder_path: Path,
+    aux_path: Path,
+    find_path: Path,
+    instance: str,
+    seeds: List[str],
+) -> None:
+    logger.info(f"Starting to parse instance '{instance}'.")
+    _, identifier_counts = parse_representation_objects(aux_path, find_path)
+    logger.info(f"Parsing for instance '{instance}' completed")
+
+    for seed in seeds:
+        find_bins_path = instance_folder_path.joinpath(
+            instance, seed, f"{instance}.find_bins"
+        )
+
+        if find_bins_path.exists():
+            logger.info(f"Find bins already exist at '{find_bins_path}'. Skipping.")
+            continue
+        else:
+            logger.info(f"Binning seed '{seed}' of instance '{instance}'.")
+            with gzip.open(
+                instance_folder_path.joinpath(instance, seed, f"{instance}.learnt.gz"),
+                "rt",
+            ) as f_learnt:
+                learnt_lines: List[str] = f_learnt.readlines()
+                f_learnt.close()
+                # Skip the first line if it is a header
+                learnt_clauses: List[List[int]] = [
+                    list(map(int, line.strip().split(", ")[1].split()))
+                    for line in learnt_lines[1:]
+                ]
+
+            bins: Dict[str, np.ndarray] = increment_find_bins(
+                find_path, identifier_counts, learnt_clauses
+            )
+
+            pickle.dump(bins, find_bins_path.open("wb"))
+
+    logger.info(f"Finished processing instance '{instance}'.")

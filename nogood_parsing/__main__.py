@@ -11,29 +11,29 @@ Usage:
 Arguments:
     -i, --instance-folder: Path to the folder containing instance directories.
     -s, --shared-variables: Path to the shared_variables file.
+    -b, --number-of-bins: Number of bins to use for the binning. Default is 10.
 """
 
 import argparse
 import json
 import sys
 import os
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Tuple, Union
 import numpy as np
 from pathlib import Path
 import pickle
 import gzip
 import logging
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, Future, wait
 
 from binning import (
-    parse_representation_objects,
-    increment_find_bins,
     merge_shared_variables,
     find_top_indices,
     CustomJSONEncoder,
+    parse_and_bin_instance,
+    resample_nd_matrix,
 )
 
-from constants import NUMBER_OF_BINS
 
 np.set_printoptions(threshold=sys.maxsize)
 logging.basicConfig(level=logging.INFO)
@@ -58,8 +58,16 @@ def main():
         required=True,
         help="Path to the shared_variables file.",
     )
+    arg_parser.add_argument(
+        "-b",
+        "--number-of-bins",
+        type=int,
+        default=10,
+        help="Number of bins to use for the binning. Default is 10.",
+    )
     args = arg_parser.parse_args()
 
+    number_of_bins = args.number_of_bins
     instance_folder_path = Path(args.instance_folder)
     shared_variables_path = Path(args.shared_variables)
 
@@ -80,16 +88,16 @@ def main():
         logger.error(f"Failed to load shared variables file: {e}")
         sys.exit(1)
 
-    instance_dirs = next(os.walk(instance_folder_path))[1]
+    instance_dirs: List[str] = next(os.walk(instance_folder_path))[1]
     if len(instance_dirs) == 0:
         logger.error(f"No instance directories found in '{instance_folder_path}'")
         sys.exit(1)
 
-    seeds = next(os.walk(instance_folder_path.joinpath(instance_dirs[0])))[1]
+    seeds: List[str] = next(os.walk(instance_folder_path.joinpath(instance_dirs[0])))[1]
 
     # Check if all seeds of an instance contain the {instance}.find_bins file
     # If so, do not add it to the list
-    instances_to_process = []
+    instances_to_process: List[str] = []
     for instance in instance_dirs:
         all_seeds_have_find_bins = True
         for seed in seeds:
@@ -119,58 +127,29 @@ def main():
     # Check if the paths exist. They should :)
     assert all(aux_path.exists() for aux_path in aux_paths)
     assert all(find_path.exists() for find_path in find_json)
+
     # Check if the sizes of all training data are the same
     assert len(aux_paths) == len(find_json) == len(instances_to_process)
-    parse_representation_object_args = list(zip(aux_paths, find_json))
+    parse_representation_object_args: List[Tuple[Path, Path]] = list(
+        zip(aux_paths, find_json)
+    )
 
     # Parse one aux file from each instance to get the variable representations as the same representation is shared across all seeds.
-    with ProcessPoolExecutor(max_workers=128) as executor:
-        futures_dict = {}
+    with ProcessPoolExecutor(max_workers=64) as executor:
+        futures: List[Future] = []
         for i, (aux_path, find_path) in enumerate(parse_representation_object_args):
-            future = executor.submit(parse_representation_objects, aux_path, find_path)
-            futures_dict[future] = (instances_to_process[i], aux_path, find_path)
+            future = executor.submit(
+                parse_and_bin_instance,
+                instance_folder_path,
+                aux_path,
+                find_path,
+                instances_to_process[i],
+                seeds,
+            )
+            futures.append(future)
 
-        for future in as_completed(futures_dict):
-            instance, aux_path, find_path = futures_dict[future]
-            try:
-                _, identifier_counts = future.result()
-            except Exception as exc:
-                logger.error(
-                    f"Job for item {(aux_path, find_path)} generated an exception: {exc}"
-                )
-            else:
-                logger.info(f"Finished processing instance '{instance}'")
-                for seed in seeds:
-                    find_bins_path = instance_folder_path.joinpath(
-                        instance, seed, f"{instance}.find_bins"
-                    )
+    wait(futures)
 
-                    if find_bins_path.exists():
-                        continue
-                    else:
-                        with gzip.open(
-                            instance_folder_path.joinpath(
-                                instance, seed, f"{instance}.learnt.gz"
-                            ),
-                            "rt",
-                        ) as f_learnt:
-                            learnt_lines: List[str] = f_learnt.readlines()
-                            f_learnt.close()
-                            # Skip the first line if it is a header
-                            learnt_clauses = [
-                                list(map(int, line.strip().split(", ")[1].split()))
-                                for line in learnt_lines[1:]
-                            ]
-
-                        bins = increment_find_bins(
-                            find_path, identifier_counts, learnt_clauses
-                        )
-
-                        pickle.dump(bins, find_bins_path.open("wb"))
-
-    return
-
-    # [TODO]: Look at BSplines and use them to "bin" the data
     combined_bins: Dict[str, np.ndarray] = {}
     for instance in instance_dirs:
         for seed in seeds:
@@ -188,22 +167,23 @@ def main():
 
             find_bins = merge_shared_variables(find_bins, shared_variables)
             # Sum normalize the bins
-            for name, arr in find_bins.items():
-                find_bins[name] = sum_normalize(arr)
-                if name in combined_bins:
-                    combined_bins[name] += find_bins[name]
+            for variable_name, arr in find_bins.items():
+                interpolated_arr = resample_nd_matrix(
+                    arr, tuple([number_of_bins] * len(arr.shape))
+                )
+                # Normalize the array
+                interpolated_arr = interpolated_arr / np.sum(interpolated_arr)
+                if variable_name in combined_bins:
+                    combined_bins[variable_name] += interpolated_arr
                 else:
-                    combined_bins[name] = np.copy(find_bins[name])
+                    combined_bins[variable_name] = interpolated_arr
 
     top_indices_json: Dict[str, Union[int, List[Dict[str, Any]]]] = {
-        "bin_size": NUMBER_OF_BINS
+        "bin_size": number_of_bins
     }
 
-    for name, arr in combined_bins.items():
-        top_indices_json[name] = find_top_indices(arr, n=5)
-        logger.debug(f"{name}:")
-        logger.debug(f"Top indices: {top_indices_json[name]}")
-        logger.debug(f"Array: {arr}")
+    for variable_name, arr in combined_bins.items():
+        top_indices_json[variable_name] = find_top_indices(arr, n=5)
 
     try:
         output_path = instance_folder_path.joinpath("top_indices.json")
