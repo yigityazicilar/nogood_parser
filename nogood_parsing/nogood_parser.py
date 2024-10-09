@@ -1,4 +1,5 @@
 from collections import Counter
+from operator import neg
 from pathlib import Path
 import re
 from typing import Any, Dict, List, NamedTuple, Tuple, Union
@@ -165,6 +166,7 @@ class NogoodParser:
             tokens.append(Token(kind, value, pos))
         return tokens
 
+    # [TODO] Implement this using LL(k) parsing.
     def parse(self, tokens: List[Token]) -> Expr:
         raise NotImplementedError
 
@@ -174,7 +176,8 @@ def get_identifier_counts(tokens: List[Token]) -> Counter[Identifier]:
 
     for token in tokens:
         if token.kind == "IDENTIFIER":
-            identifiers.append(token.value)  # type: ignore
+            assert isinstance(token.value, Identifier)
+            identifiers.append(token.value)
 
     return Counter(identifiers)
 
@@ -209,19 +212,17 @@ def parse_representation_objects(
             representation = obj.get("representation", "")
 
             try:
-                parsed_nogood = parser.tokenize(left_hand_side)
+                tokenized_nogood = parser.tokenize(left_hand_side)
+                # parsed_nogood = parser.parse(tokenized_nogood)
             except Exception as e:
                 logger.error(f"Failed to parse '{left_hand_side}' with error: {e}")
-                raise
 
-            increments = get_identifier_counts(parsed_nogood)
-
-            pos_val, neg_val = "", ""
-            pos_op, neg_op = "=", "="
+            increments = get_identifier_counts(tokenized_nogood)
 
             if representation == "2vals":
                 neg_val = obj.get("val1", "")
                 pos_val = obj.get("val2", "")
+                pos_op = neg_op = "="
             elif representation == "order":
                 pos_val = neg_val = obj.get("value", "")
                 pos_op, neg_op = "<=", ">"
@@ -229,8 +230,8 @@ def parse_representation_objects(
                 pos_val = neg_val = obj.get("value", "")
                 pos_op, neg_op = "=", "!="
 
-            positive = f"{parsed_nogood}{pos_op}{pos_val}"
-            negative = f"{parsed_nogood}{neg_op}{neg_val}"
+            # positive = f"{parsed_nogood}{pos_op}{pos_val}"
+            # negative = f"{parsed_nogood}{neg_op}{neg_val}"
 
             try:
                 int_key = int(key)

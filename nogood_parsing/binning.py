@@ -54,7 +54,7 @@ class CustomJSONEncoder(json.JSONEncoder):
         return super(CustomJSONEncoder, self).default(obj)
 
 
-def increment_find_bins(
+def increment_find_matrices(
     find_json_path: Path,
     identifier_counts: Dict[int, Counter[Identifier]],
     learnt_clauses: List[List[int]],
@@ -105,27 +105,114 @@ def increment_find_bins(
     return find_bins
 
 
-def resample_nd_matrix(matrix: np.ndarray, new_shape: Tuple[int, ...]) -> np.ndarray:
+def map_values_to_nd_bins(matrix: np.ndarray, number_of_bins: int) -> np.ndarray:
     """
-    Resample an n-dimensional matrix to a new shape using multilinear interpolation.
+    This function will map values of an n-dimensional matrix to bins across all dimensions.
+
+    Args:
+    - matrix: The n-dimensional matrix to be processed.
+
+    Returns:
+    - An array where each entry is a list of tuples. Each tuple contains:
+      (dimension, (bin_index, fraction)) to differentiate which dimension's bin is being referred to.
     """
-    old_dims = matrix.shape
-    dim_ranges = [np.arange(d) for d in old_dims]
-    new_dims = [np.linspace(0, d - 1, num=n) for d, n in zip(old_dims, new_shape)]
-    mesh_new = np.meshgrid(*new_dims, indexing="ij")
+    shape: Tuple[int, ...] = matrix.shape
+    num_dims: int = len(shape)
 
-    # Flatten the coordinate grids
-    coords_new = np.vstack([m.flatten() for m in mesh_new]).T
+    # Calculate the bin size for each dimension based on NUMBER_OF_BINS
+    bin_sizes: List[float] = [dim_size / number_of_bins for dim_size in shape]
 
-    matrix_new = interpn(
-        points=dim_ranges,
-        values=matrix,
-        xi=coords_new,
-        method="cubic",
-        bounds_error=False,
-        fill_value=0,
-    )
-    return matrix_new.reshape(new_shape)
+    # Create an empty map for each dimension based on the bin size
+    map_to_bins: np.ndarray = np.empty(shape, dtype=object)
+    for idx, _ in np.ndenumerate(matrix):
+        map_to_bins[idx] = [[] for _ in range(num_dims)]
+
+        # Calculate the bin indices and fractions for each dimension
+        for dim in range(num_dims):
+            value_in_dim: int = idx[dim]
+            lower_bound: int = value_in_dim
+            upper_bound: int = value_in_dim + 1
+
+            bin_size: float = bin_sizes[dim]
+            start_bin: int = int(lower_bound // bin_size)
+            end_bin: int = int(upper_bound // bin_size)
+
+            if start_bin == end_bin:
+                # Fits entirely in one bin
+                map_to_bins[idx][dim].append((start_bin, 1))
+            else:
+                # Spans across multiple bins, calculate fractions
+                for bin_idx in range(start_bin, end_bin + 1):
+                    bin_start: float = bin_idx * bin_size
+                    bin_end: float = (bin_idx + 1) * bin_size
+
+                    overlap_start: float = max(lower_bound, bin_start)
+                    overlap_end: float = min(upper_bound, bin_end)
+
+                    fraction: float = (overlap_end - overlap_start) / (
+                        upper_bound - lower_bound
+                    )
+                    if fraction > 0:
+                        map_to_bins[idx][dim].append((bin_idx, fraction))
+
+    return map_to_bins
+
+
+def apply_binning(
+    binning_guide: np.ndarray, matrix: np.ndarray, number_of_bins: int
+) -> np.ndarray:
+    """
+    Bins the values of a matrix according to the provided binning map.
+
+    Args:
+    - binning_map: The binning map created by map_values_to_nd_bins, where each entry contains
+                   a list of tuples (dimension, (bin_index, fraction)).
+    - matrix: The original matrix that needs to be binned.
+
+    Returns:
+    - A new binned matrix, with dimensions [NUMBER_OF_BINS, NUMBER_OF_BINS, ..., NUMBER_OF_BINS] (n-dimensional).
+      Each entry contains the accumulated values based on the binning map.
+    """
+    num_dims = len(matrix.shape)
+    binned_matrix = np.zeros([number_of_bins] * num_dims)
+
+    for idx, value in np.ndenumerate(matrix):
+        bin_contributions = binning_guide[idx]
+        # Sanity check: Ensure that the fractions sum to 1
+        assert all(
+            [
+                np.isclose(sum([fraction for _, fraction in contrib]), 1)
+                for contrib in bin_contributions
+            ]
+        ), f"Fractions do not sum to 1: {bin_contributions}"
+
+        # Now, combine the bin contributions from each dimension to distribute the value across bins
+        def distribute_value(
+            current_idx: Tuple[int, ...], current_fraction: float, dimension: int
+        ):
+            if dimension == num_dims:
+                # When all dimensions are processed, add the value to the final bin
+                binned_matrix[current_idx] += value * current_fraction
+            else:
+                # Recursively process each dimension
+                for bin_idx, fraction in bin_contributions[dimension]:
+                    distribute_value(
+                        current_idx + (bin_idx,),
+                        current_fraction * fraction,
+                        dimension + 1,
+                    )
+
+        # Start the recursion to distribute the value across the bins
+        distribute_value((), 1.0, 0)
+
+    # Sanity check: Ensure that the sum of the original matrix is equal to the sum of the binned matrix
+    original_sum = np.sum(matrix)
+    binned_sum = np.sum(binned_matrix)
+    assert np.isclose(
+        original_sum, binned_sum
+    ), f"Sum mismatch: Original sum {original_sum}, Binned sum {binned_sum}"
+
+    return binned_matrix
 
 
 def create_numpy_array(item: Dict[str, Any]) -> np.ndarray:
@@ -250,7 +337,7 @@ def parse_and_bin_instance(
                     for line in learnt_lines[1:]
                 ]
 
-            bins: Dict[str, np.ndarray] = increment_find_bins(
+            bins: Dict[str, np.ndarray] = increment_find_matrices(
                 find_path, identifier_counts, learnt_clauses
             )
 

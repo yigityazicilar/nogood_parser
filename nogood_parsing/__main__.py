@@ -22,16 +22,16 @@ from typing import Any, Dict, List, Tuple, Union
 import numpy as np
 from pathlib import Path
 import pickle
-import gzip
 import logging
 from concurrent.futures import ProcessPoolExecutor, Future, wait
 
 from binning import (
+    apply_binning,
+    map_values_to_nd_bins,
     merge_shared_variables,
     find_top_indices,
     CustomJSONEncoder,
     parse_and_bin_instance,
-    resample_nd_matrix,
 )
 
 
@@ -151,6 +151,7 @@ def main():
     wait(futures)
 
     combined_bins: Dict[str, np.ndarray] = {}
+    binning_guides: Dict[str, np.ndarray] = {}
     for instance in instance_dirs:
         for seed in seeds:
             find_bins_path = instance_folder_path.joinpath(
@@ -168,15 +169,21 @@ def main():
             find_bins = merge_shared_variables(find_bins, shared_variables)
             # Sum normalize the bins
             for variable_name, arr in find_bins.items():
-                interpolated_arr = resample_nd_matrix(
-                    arr, tuple([number_of_bins] * len(arr.shape))
+                if variable_name not in binning_guides:
+                    binning_guides[variable_name] = map_values_to_nd_bins(
+                        arr, number_of_bins
+                    )
+
+                binned_arr = apply_binning(
+                    binning_guides[variable_name], arr, number_of_bins
                 )
-                # Normalize the array
-                interpolated_arr = interpolated_arr / np.sum(interpolated_arr)
+                binned_arr = (
+                    binned_arr / np.sum(binned_arr) * 100
+                )  # Sum normalize. Convert to percentage
                 if variable_name in combined_bins:
-                    combined_bins[variable_name] += interpolated_arr
+                    combined_bins[variable_name] += binned_arr
                 else:
-                    combined_bins[variable_name] = interpolated_arr
+                    combined_bins[variable_name] = binned_arr
 
     top_indices_json: Dict[str, Union[int, List[Dict[str, Any]]]] = {
         "bin_size": number_of_bins
